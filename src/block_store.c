@@ -10,15 +10,30 @@
 
 block_store_t *block_store_create()
 {
+    // allocate memory for the block store and initializes it to zeros
+        // using memset
+
+    // sets the bitmap field of the block store to an index starting at
+        // BITMAP_START_Block
+
+    // mark the blocks used by the bitmap as allocated using the 
+        // block_store_request funciton
     return NULL;
 }
 
 void block_store_destroy(block_store_t *const bs)
 {
+    // destroys a block store by freeing the memory allocated to it
+    // first checks if the pointer to the block store is not NULL
+
+    // if so, it frees memory allocated to the bitmap and then to the block store
     UNUSED(bs);
 }
 size_t block_store_allocate(block_store_t *const bs)
 {
+    // finds first free block in the block store and marks it as allocated in the bitmap
+
+    // returns the index of the allocated block or SIZE_MAX if no free blocks available
     UNUSED(bs);
     return 0;
 }
