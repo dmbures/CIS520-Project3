@@ -9,40 +9,56 @@
 #define UNUSED(x) (void)(x)
 
 
-struct block_store 
+typedef struct block_store
 {
-    block_store_t *bit_map;
-};
+   bitmap_t *bit_map;
+    uint8_t *data;
+    size_t used;
+} block_store_t;
 
 block_store_t *block_store_create()
 {
-    block_store_t *bs;                              // allocate memory for the block store
-    memset(bs, 0, sizeof(block_store_t));           // initializes it to zeros using memset
+    block_store_t *bs = malloc(sizeof(block_store_t)); // allocate memory for the block store
+    bs->bit_map = bitmap_create(BLOCK_STORE_NUM_BLOCKS); //creates bitmap
 
-    bs->bit_map = bitmap_initialize(BITMAP_SIZE_BYTES, 0 /*NONE in the BITMAP_FLAGS enum*/);
-    
-    // sets the bitmap field of the block store to an index starting at BITMAP_START_Block     (What is this?)   
+    bitmap_set(bs->bit_map, 127); //sets bitmap
+    bs->data = calloc(1, BLOCK_SIZE_BYTES * BLOCK_STORE_NUM_BLOCKS);
 
-    // mark the blocks used by the bitmap as allocated using the  block_store_request funciton    
-    block_store_request(bs, 0 /*const size_t block_id*/);      // (this funciton will be implemented in checkpoint 2; also I have not idea what to pass for block_id)
     return bs;
 }
 
 // destroys a block store by freeing the memory allocated to it
 void block_store_destroy(block_store_t *const bs)
 {
-    if(bs == NULL)      //checks if pointer is NULL
+    if(bs == NULL) {
         return;
+    }     //checks if pointer is NULL
 
     bitmap_destroy(bs->bit_map);
-    free(bs);
+    free(bs->data);
+    free(bs); //frees block
 }
 size_t block_store_allocate(block_store_t *const bs)
 {
-    size_t index = bitmap_ffs(bs->bit_map);    // finds first free block in the block store
-    bitmap_set(bs->bit_map, index);             //marks it as allocated in the bitmap
+    if (bs == NULL)
+    {
+        return SIZE_MAX;  //returns SIZE_MAX if block is null
+    }
 
-    return index;
+    size_t index = bitmap_ffs(bs->bit_map);    // finds first free block in the block store
+    
+    if(index > BLOCK_STORE_NUM_BLOCKS - 1){
+        return SIZE_MAX; //returns SIZE_MAX if block is too small
+    }
+
+    bitmap_set(bs->bit_map, index);             //sets bitmap
+    bs->used++; //makrs block as used
+
+    if(index >= 128){
+        index--; //decrements
+    }
+
+    return index; //returns allocated block's id
 }
 
 bool block_store_request(block_store_t *const bs, const size_t block_id)
