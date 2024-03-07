@@ -74,10 +74,7 @@ void block_store_release(block_store_t *const bs, const size_t block_id)
         return;
     if(block_id >= BITMAP_SIZE_BYTES )
         return;
-
-    printf("Before %d\n",bitmap_test(bs->bit_map, block_id));
     bitmap_reset(bs->bit_map, block_id);
-    printf("After %d\n",bitmap_test(bs->bit_map, block_id));
 }
 
 size_t block_store_get_used_blocks(const block_store_t *const bs)
