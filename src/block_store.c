@@ -20,12 +20,12 @@ block_store_t *block_store_create()
 {
     block_store_t *bs = malloc(sizeof(block_store_t)); // allocate memory for the block store
 
-    bs->data = calloc(BLOCK_STORE_NUM_BLOCKS,BLOCK_SIZE_BYTES);
+    bs->data = calloc(BLOCK_STORE_NUM_BLOCKS,BLOCK_SIZE_BYTES); // allocate memory for block data
     bs->bit_map= bitmap_overlay(BITMAP_SIZE_BITS, bs->data+BITMAP_START_BLOCK*BLOCK_SIZE_BYTES );
     for (int i = 0; i < BITMAP_NUM_BLOCKS; i++)
         block_store_request(bs, BITMAP_START_BLOCK+i);
 
-    return bs;
+    return bs; //returns new Block Storage device
 }
 
 // destroys a block store by freeing the memory allocated to it
@@ -58,95 +58,95 @@ size_t block_store_allocate(block_store_t *const bs)
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
     if(bs == NULL)
-        return false;
+        return false; //returns false if block is null
     if(block_id >= BITMAP_START_BLOCK+BITMAP_SIZE_BYTES)
-        return false;
+        return false; //returns false if the block id greater than the available blocks
 
     if(bitmap_test(bs->bit_map, block_id))
-        return false;
+        return false; //returns false if block id is already set
 
-    bitmap_set(bs->bit_map, block_id);
+    bitmap_set(bs->bit_map, block_id); //sets bitmap
     return true;
 }
 
 void block_store_release(block_store_t *const bs, const size_t block_id)
 {
     if(bs == NULL)
-        return;
+        return; //ends function if the block is null
     if(block_id >= BITMAP_SIZE_BYTES )
-        return;
-    bitmap_reset(bs->bit_map, block_id);
+        return; //ends function if the block id is greater than the avaiable blocks
+    bitmap_reset(bs->bit_map, block_id); //Frees the specified block
 }
 
 size_t block_store_get_used_blocks(const block_store_t *const bs)
 {
-    if(bs == NULL)
+    if(bs == NULL) //returns SIZE_MAX if the block is null
         return SIZE_MAX;
-    return bitmap_total_set(bs->bit_map);
+    return bitmap_total_set(bs->bit_map); //returns the number of blocks marked as in use
 }
 
 size_t block_store_get_free_blocks(const block_store_t *const bs)
 {
     if(bs == NULL)
-        return SIZE_MAX;
-    return BLOCK_STORE_NUM_BLOCKS-block_store_get_used_blocks(bs);
+        return SIZE_MAX; //returns SIZE_MAX if the block is null
+    return BLOCK_STORE_NUM_BLOCKS-block_store_get_used_blocks(bs); //returns the number of blocks marked free for use
 }
 
 size_t block_store_get_total_blocks()
 {
-    return BLOCK_STORE_NUM_BLOCKS;
+    return BLOCK_STORE_NUM_BLOCKS; //Returns the total number of user-addressable blocks
 }
 
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
-    if(bs == NULL || buffer == NULL)
+    if(bs == NULL || buffer == NULL) //returns 0 if the block or buffer is null
         return 0;
     UNUSED(block_id);
     size_t size = 0;
-    if(bitmap_test(bs->bit_map, block_id)){
+    if(bitmap_test(bs->bit_map, block_id)){ //if the bipmap is initialized
         size = BLOCK_SIZE_BYTES;
         memcpy(buffer,&bs->data[block_id],size);
     }
-    return size;
+    return size; //reads data from the specified block and writes it to the designated buffer, returns 0 upon error
 }
 
 size_t block_store_write(block_store_t *const bs, const size_t block_id, const void *buffer)
 {
-    if(bs == NULL || buffer == NULL)
+    if(bs == NULL || buffer == NULL) //returns 0 if the block or buffer is null
         return 0;
 
     memcpy(&bs->data[block_id],buffer,BLOCK_SIZE_BYTES);
-    return BLOCK_SIZE_BYTES;
+    return BLOCK_SIZE_BYTES; //reads data from the specified buffer and writes it to the designated block
 }
 
 block_store_t *block_store_deserialize(const char *const filename)
 {
     block_store_t *bs = block_store_create();
 
-    if(bs == NULL || filename == NULL)
+    if(bs == NULL || filename == NULL) //returns null if the block or filename is null
         return NULL;
     
-    FILE * f = fopen(filename, "rb");
-    if (f == NULL)
+    FILE * f = fopen(filename, "rb"); 
+    if (f == NULL) //returns null if the file cannot be read
         return NULL;
     
     fread(bs->data, sizeof(bs->data[0]), BLOCK_STORE_NUM_BYTES, f);
     fclose(f);
 
-    return bs;
+    return bs; //returns pointer to the new Block Storage device
 }
 
 size_t block_store_serialize(const block_store_t *const bs, const char *const filename)
 {
-    if(bs == NULL || filename == NULL)
+    if(bs == NULL || filename == NULL)//returns null if the block or filename is null
         return 0;
 
     FILE * f = fopen(filename, "wb");
-    if (f == NULL)
+    if (f == NULL) //returns null if the file cannot be edited
         return 0;
     
     fwrite(bs->data, sizeof(bs->data[0]), BLOCK_STORE_NUM_BYTES, f);
     fclose(f);
 
-    return BLOCK_STORE_NUM_BYTES;
+    return BLOCK_STORE_NUM_BYTES; //writes the entirety of the BS device to file or overwriting existing BS device
 }
