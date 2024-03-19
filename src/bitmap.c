@@ -1,5 +1,6 @@
 #include "bitmap.h"
 #include <string.h>
+#include <stdio.h>
 
 // Just the one for now. Indicates we're an overlay and should not free
 // (also, make sure that ALL is as wide as ll of the flags)

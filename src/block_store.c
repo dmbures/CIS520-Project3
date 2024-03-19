@@ -2,6 +2,7 @@
 #include <stdint.h>
 #include "bitmap.h"
 #include "block_store.h"
+#include <string.h>
 // include more if you need
 
 // You might find this handy.  I put it around unused parameters, but you should
@@ -98,29 +99,54 @@ size_t block_store_get_total_blocks()
 
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
-    UNUSED(bs);
+    if(bs == NULL || buffer == NULL)
+        return 0;
     UNUSED(block_id);
-    UNUSED(buffer);
-    return 0;
+    size_t size = 0;
+    if(bitmap_test(bs->bit_map, block_id)){
+        size = BLOCK_SIZE_BYTES;
+        memcpy(buffer,&bs->data[block_id],size);
+    }
+    return size;
 }
 
 size_t block_store_write(block_store_t *const bs, const size_t block_id, const void *buffer)
 {
-    UNUSED(bs);
-    UNUSED(block_id);
-    UNUSED(buffer);
-    return 0;
+    if(bs == NULL || buffer == NULL)
+        return 0;
+
+    memcpy(&bs->data[block_id],buffer,BLOCK_SIZE_BYTES);
+    return BLOCK_SIZE_BYTES;
 }
 
 block_store_t *block_store_deserialize(const char *const filename)
 {
-    UNUSED(filename);
-    return NULL;
+    block_store_t *bs = block_store_create();
+
+    if(bs == NULL || filename == NULL)
+        return NULL;
+    
+    FILE * f = fopen(filename, "rb");
+    if (f == NULL)
+        return NULL;
+    
+    fread(bs->data, sizeof(bs->data[0]), BLOCK_STORE_NUM_BYTES, f);
+    fclose(f);
+
+    return bs;
 }
 
 size_t block_store_serialize(const block_store_t *const bs, const char *const filename)
 {
-    UNUSED(bs);
-    UNUSED(filename);
-    return 0;
+    if(bs == NULL || filename == NULL)
+        return 0;
+
+    FILE * f = fopen(filename, "wb");
+    if (f == NULL)
+        return 0;
+    
+    fwrite(bs->data, sizeof(bs->data[0]), BLOCK_STORE_NUM_BYTES, f);
+    fclose(f);
+
+    return BLOCK_STORE_NUM_BYTES;
 }

@@ -437,6 +437,7 @@ TEST(block_store_serialize, null_bs)
     score += 2;
 }
 
+
 TEST(block_store_deserialize, valid_deserialize) 
 {
     block_store_t *bsWrite = NULL;
