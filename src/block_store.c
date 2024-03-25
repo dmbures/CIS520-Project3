@@ -3,6 +3,7 @@
 #include "bitmap.h"
 #include "block_store.h"
 #include <string.h>
+#include <errno.h>
 // include more if you need
 
 // You might find this handy.  I put it around unused parameters, but you should
@@ -32,23 +33,29 @@ block_store_t *block_store_create()
 void block_store_destroy(block_store_t *const bs)
 {
     if(bs == NULL) {
+        fprintf(stderr,"error = null pointer\n");  
         return;
     }     //checks if pointer is NULL
 
     bitmap_destroy(bs->bit_map);
+    //free(bs->bit_map);
     free(bs->data);
     free(bs); //frees block
 }
 
 size_t block_store_allocate(block_store_t *const bs)
 {
-    if (bs == NULL)
+    if (bs == NULL) {   
+        fprintf(stderr,"error = null pointer\n");    
         return SIZE_MAX;  //returns SIZE_MAX if block is null
+    }
     
     size_t index = bitmap_ffz(bs->bit_map);    // finds first free block in the block store
 
-    if(index == SIZE_MAX)
+    if(index == SIZE_MAX){
+        fprintf(stderr,"error = invailed block ID\n");    
         return SIZE_MAX; //returns SIZE_MAX if block is too small
+    }
 
     bitmap_set(bs->bit_map, index);             //sets bitmap
 
@@ -57,11 +64,14 @@ size_t block_store_allocate(block_store_t *const bs)
 
 bool block_store_request(block_store_t *const bs, const size_t block_id)
 {
-    if(bs == NULL)
+    if(bs == NULL){    
+        fprintf(stderr,"error = null pointer\n");    
         return false; //returns false if block is null
-    if(block_id >= BITMAP_START_BLOCK+BITMAP_SIZE_BYTES)
+    }
+    if(block_id >= BITMAP_START_BLOCK+BITMAP_SIZE_BYTES){
+        fprintf(stderr,"error = invailed block ID\n");    
         return false; //returns false if the block id greater than the available blocks
-
+    }
     if(bitmap_test(bs->bit_map, block_id))
         return false; //returns false if block id is already set
 
@@ -71,24 +81,32 @@ bool block_store_request(block_store_t *const bs, const size_t block_id)
 
 void block_store_release(block_store_t *const bs, const size_t block_id)
 {
-    if(bs == NULL)
-        return; //ends function if the block is null
-    if(block_id >= BITMAP_SIZE_BYTES )
+    if(bs == NULL){
+        fprintf(stderr,"error = null pointer\n");    
+        return;
+    }
+    if(block_id >= BITMAP_SIZE_BYTES ){
+        fprintf(stderr,"error = invailed block ID\n");    
         return; //ends function if the block id is greater than the avaiable blocks
+    }
     bitmap_reset(bs->bit_map, block_id); //Frees the specified block
 }
 
 size_t block_store_get_used_blocks(const block_store_t *const bs)
 {
-    if(bs == NULL) //returns SIZE_MAX if the block is null
-        return SIZE_MAX;
+    if(bs == NULL){
+        fprintf(stderr,"error = null pointer\n");    
+        return SIZE_MAX; //returns SIZE_MAX if the block is null
+    }
     return bitmap_total_set(bs->bit_map); //returns the number of blocks marked as in use
 }
 
 size_t block_store_get_free_blocks(const block_store_t *const bs)
 {
-    if(bs == NULL)
+    if(bs == NULL){
+        fprintf(stderr,"error = null pointer\n");    
         return SIZE_MAX; //returns SIZE_MAX if the block is null
+    }
     return BLOCK_STORE_NUM_BLOCKS-block_store_get_used_blocks(bs); //returns the number of blocks marked free for use
 }
 
@@ -99,8 +117,10 @@ size_t block_store_get_total_blocks()
 
 size_t block_store_read(const block_store_t *const bs, const size_t block_id, void *buffer)
 {
-    if(bs == NULL || buffer == NULL) //returns 0 if the block or buffer is null
+    if(bs == NULL || buffer == NULL){ //returns 0 if the block or buffer is null
+        fprintf(stderr,"error = null pointer\n");
         return 0;
+    }
     UNUSED(block_id);
     size_t size = 0;
     if(bitmap_test(bs->bit_map, block_id)){ //if the bipmap is initialized
@@ -112,8 +132,10 @@ size_t block_store_read(const block_store_t *const bs, const size_t block_id, vo
 
 size_t block_store_write(block_store_t *const bs, const size_t block_id, const void *buffer)
 {
-    if(bs == NULL || buffer == NULL) //returns 0 if the block or buffer is null
+    if(bs == NULL || buffer == NULL){ //returns 0 if the block or buffer is null
+        fprintf(stderr,"error = null pointer\n");
         return 0;
+    }
 
     memcpy(&bs->data[block_id],buffer,BLOCK_SIZE_BYTES);
     return BLOCK_SIZE_BYTES; //reads data from the specified buffer and writes it to the designated block
@@ -121,14 +143,23 @@ size_t block_store_write(block_store_t *const bs, const size_t block_id, const v
 
 block_store_t *block_store_deserialize(const char *const filename)
 {
-    block_store_t *bs = block_store_create();
-
-    if(bs == NULL || filename == NULL) //returns null if the block or filename is null
-        return NULL;
+    if(filename == NULL ){ //returns null if the filename is null
+        fprintf(stderr,"error = invalid file name\n");
+        return 0;
+    }
     
     FILE * f = fopen(filename, "rb"); 
-    if (f == NULL) //returns null if the file cannot be read
-        return NULL;
+    if (f == NULL){ //returns null if the file cannot be edited
+        perror(strerror(errno));
+        return 0;
+    }
+
+    block_store_t *bs = block_store_create();
+    if(bs == NULL){ //returns null pointer is null
+        fprintf(stderr,"error = null pointer to block_store\n");
+        fclose(f);
+        return 0;
+    }
     
     fread(bs->data, sizeof(bs->data[0]), BLOCK_STORE_NUM_BYTES, f);
     fclose(f);
@@ -138,12 +169,21 @@ block_store_t *block_store_deserialize(const char *const filename)
 
 size_t block_store_serialize(const block_store_t *const bs, const char *const filename)
 {
-    if(bs == NULL || filename == NULL)//returns null if the block or filename is null
+    if(filename == NULL ){ //returns null if the filename is null
+        fprintf(stderr,"error = invalid file name\n");
         return 0;
+    }
+    
+    if(bs == NULL ){ //returns null if the block pointer is null
+        fprintf(stderr,"error = null pointer to block_store\n");
+        return 0;
+    }
 
     FILE * f = fopen(filename, "wb");
-    if (f == NULL) //returns null if the file cannot be edited
+    if (f == NULL){ //returns null if the file cannot be edited
+        perror(strerror(errno));
         return 0;
+    }
     
     fwrite(bs->data, sizeof(bs->data[0]), BLOCK_STORE_NUM_BYTES, f);
     fclose(f);
