@@ -38,7 +38,6 @@ void block_store_destroy(block_store_t *const bs)
     }     //checks if pointer is NULL
 
     bitmap_destroy(bs->bit_map);
-    //free(bs->bit_map);
     free(bs->data);
     free(bs); //frees block
 }
